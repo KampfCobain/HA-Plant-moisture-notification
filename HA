@@ -24,6 +24,7 @@ blueprint:
 
 variables:
   plants: !input plants
+  pushover_service: !input pushover_service
 
 trigger:
   - platform: time
@@ -56,7 +57,7 @@ action:
       - "{{ water != '' }}"
       - "{{ nutrition != '' }}"
 
-  - service: !input pushover_service
+  - service: "{{ pushover_service }}"
     data:
       title: "Pflanzen-Check"
       message: >-
