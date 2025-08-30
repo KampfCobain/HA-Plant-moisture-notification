@@ -7,9 +7,9 @@ blueprint:
       name: Pflanzen
       description: Wähle die Pflanzen (plant.*), die überwacht werden sollen
       selector:
-        entity:
-          domain: plant
-          multiple: true
+        target:
+          entity:
+            domain: plant
     time:
       name: Zeitpunkt der täglichen Prüfung
       default: "20:00:00"
@@ -34,9 +34,8 @@ action:
   - variables:
       water: >-
         {% set low = [] %}
-        {% for entity_id in plants %}
-          {% set e = states[entity_id] %}
-          {% if e is not none and e.attributes.moisture_status is defined and e.attributes.moisture_status == 'Low' %}
+        {% for e in expand(plants.entity_id) %}
+          {% if e.attributes.moisture_status is defined and e.attributes.moisture_status == 'Low' %}
             {% set low = low + [ e.name ] %}
           {% endif %}
         {% endfor %}
@@ -44,9 +43,8 @@ action:
 
       nutrition: >-
         {% set low = [] %}
-        {% for entity_id in plants %}
-          {% set e = states[entity_id] %}
-          {% if e is not none and e.attributes.conductivity_status is defined and e.attributes.conductivity_status == 'Low' %}
+        {% for e in expand(plants.entity_id) %}
+          {% if e.attributes.conductivity_status is defined and e.attributes.conductivity_status == 'Low' %}
             {% set low = low + [ e.name ] %}
           {% endif %}
         {% endfor %}
