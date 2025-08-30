@@ -1,31 +1,29 @@
 blueprint:
   name: Pflanzenüberwachung (Moisture + Dünger, Pushover)
-  description: Überwacht ausgewählte Pflanzen auf Feuchtigkeit und Dünger, sendet Benachrichtigung via Pushover
+  description: Überwacht ausgewählte Pflanzen auf niedrige Feuchtigkeit bzw. Leitfähigkeit und benachrichtigt per Pushover.
   domain: automation
   input:
     plants:
       name: Pflanzen
-      description: Wähle die Pflanzen, die überwacht werden sollen
+      description: Wähle die Pflanzen (plant.*), die überwacht werden sollen
       selector:
-        target:
-          entity:
-            domain: plant
-            multiple: true
+        entity:
+          domain: plant
+          multiple: true
     time:
       name: Zeitpunkt der täglichen Prüfung
       default: "20:00:00"
       selector:
         time: {}
-    pushover_target:
+    pushover_service:
       name: Pushover Service
-      description: Dein Pushover notify service (z.B. notify.pushover)
+      description: Name des Notify-Services (z. B. notify.pushover oder notify.dein_user)
+      default: notify.pushover
       selector:
-        entity:
-          domain: notify
+        text: {}
 
 variables:
   plants: !input plants
-  pushover_target: !input pushover_target
 
 trigger:
   - platform: time
@@ -35,32 +33,34 @@ action:
   - variables:
       water: >-
         {% set low = [] %}
-        {% for e in expand(plants.entity_id) %}
-          {% if e.attributes.moisture_status is defined and e.attributes.moisture_status == "Low" %}
-            {% set low = low + [e.name] %}
+        {% for entity_id in plants %}
+          {% set e = states[entity_id] %}
+          {% if e is not none and e.attributes.moisture_status is defined and e.attributes.moisture_status == 'Low' %}
+            {% set low = low + [ e.name ] %}
           {% endif %}
         {% endfor %}
-        {{ low | join(", ") }}
+        {{ low | join(', ') }}
 
       nutrition: >-
         {% set low = [] %}
-        {% for e in expand(plants.entity_id) %}
-          {% if e.attributes.conductivity_status is defined and e.attributes.conductivity_status == "Low" %}
-            {% set low = low + [e.name] %}
+        {% for entity_id in plants %}
+          {% set e = states[entity_id] %}
+          {% if e is not none and e.attributes.conductivity_status is defined and e.attributes.conductivity_status == 'Low' %}
+            {% set low = low + [ e.name ] %}
           {% endif %}
         {% endfor %}
-        {{ low | join(", ") }}
+        {{ low | join(', ') }}
 
   - condition: or
     conditions:
       - "{{ water != '' }}"
       - "{{ nutrition != '' }}"
 
-  - service: notify.pushover
+  - service: !input pushover_service
     data:
+      title: "Pflanzen-Check"
       message: >-
         {% if water != '' %}💧 Braucht Wasser: {{ water }}{% endif %}
         {% if nutrition != '' %}\n🌱 Braucht Dünger: {{ nutrition }}{% endif %}
-      title: "Pflanzen-Check"
 
 mode: single
